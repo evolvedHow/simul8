@@ -1,0 +1,169 @@
+profile:
+  run_name: str='Store Order Picking Simulation'
+  iterations: 10
+  break_duration: 5  # resource break duration
+  uom: hours
+  use_acquire_time: true
+  use_release_time: true
+
+resources:
+  systems:
+    capacity: 1
+    cost: 1.50
+    acquire_time: 0
+    release_time: 0
+
+  dc_people:
+    capacity: 2
+    cost: 15.00
+    break_after: 5
+    acquire_time: 1
+    release_time: 1
+  
+  store_people:
+    capacity: 3
+    cost: 11.20
+    break_after: 5
+    acquire_time: 1
+    release_time: 1
+
+  stores:
+    capacity: 1000
+    cost: 2.50
+
+  pickup_locations:
+    capacity: 1
+    cost: 4.20
+    acquire_time: 3
+    release_time: 1
+
+  distribution_centers:
+    capacity: 10000
+    cost: 4.95
+
+resource_clones:
+  systems: ['Website', 'WMS']
+  dc_people: ['Marshall', 'Receiver', 'Picker', 'Packer', 'Shipper']
+  store_people: ['Stocker', 'Cashier', 'Picker', 'Stager', 'Deliverer']
+  store: ['s01', 's02', 's03', 's04', 's05']
+  pickup_locations: ['l01', 'l02', 'l03', 'l04', 'l05']
+  distribution_centers: ['l01','l02']
+
+tasks:
+  tsk.place.order:
+    duration: [0.5, 2.1]
+    cost: 1.25
+    stock_qty: [1,4]
+
+  tsk.web.order:
+    duration: [2.0, 5.0]
+    cost: 1.25
+    stock_qty: [1,4]
+    resources: [Website]
+
+  tsk.store.shopping:
+    duration: [11.0, 15.0]
+    cost: 1.25
+    stock_qty: [1,4]
+    resources: [stores]
+
+  tsk.assign.order:
+    duration: [1.0, 3.0]
+    cost: 2.11
+    resources: [Website]
+
+  tsk.pick.order:
+    duration: [8.5, 9.1]
+    cost: 8.14
+    resources: [Picker]
+
+  tsk.pack.order:
+    duration: [2.0, 5.0]
+    cost: 7.45
+    resources: [Packer]
+
+  tsk.stage.order:
+    duration: [2.0, 5.0]
+    cost: 6.11
+    resources: [Packer]
+
+  tsk.notify.customer:
+    duration: [0,0]  # Instantaneous arrival
+    cost: 1.0
+    resources: [Website]
+
+  tsk.customer.arrives:
+    duration: 0  # Instantaneous arrival
+    duration: [0, 2]
+    cost: 0.0
+
+  tsk.assign.parking:
+    duration: [3, 4]
+    cost: 1.0
+    resources: [Marshall]
+
+  tsk.deliver.order:
+    duration: [3, 5]
+    cost: 2.0
+    resources: [Deliverer]
+
+  tsk.customer.leaves:
+    duration: [1, 2]
+    cost: 0.0
+
+flow:
+  tsk.place.order:
+    plugin: inventoryEngine
+    parameter: reserve
+    handoffs:
+      web: [tsk.web.order]
+      store: [tsk.store.shopping]
+
+
+  tsk.web.order:
+    handoffs:
+      default: [tsk.pick.order]
+
+  tsk.store.shopping:
+    plugin: inventoryEngine
+    parameter: store_pick
+    handoffs:
+      default: [tsk.customer.leaves]
+
+  tsk.assign.order:
+    handoffs:
+      default: [tsk.pick.order]
+
+  tsk.pick.order:
+    handoffss:
+      default: [tsk.pack.order]
+
+  tsk.pack.order:
+    handoffs:
+      default: [tsk.stage.order]
+
+  tsk.stage.order:
+    handoffs:
+      default: [tsk.notify.customer]
+
+  tsk.notify.customer:
+    handoffs:
+      default: [tsk.customer.arrives]
+
+  tsk.customer.arrives:
+    handoffs:
+      default: [tsk.assign.parking]
+
+  tsk.deliver.order:
+    plugin: inventoryEngine
+    parameter: fulfill
+    handoffs:
+      default: [tsk.customer.leaves]
+  
+  tsk.assign.parking:
+    handoffs:
+      default: [tsk.deliver.order]
+    
+  
+triggers:
+  - tsk.place.order 
