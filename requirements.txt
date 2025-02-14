@@ -1,0 +1,20 @@
+fastAPI
+pydantic
+uvicorn
+google.cloud
+google-cloud-documentai
+python-multipart
+pypdf
+pyngrok
+simpy
+gradio
+pandas
+# ---------------
+# numpy
+# pandas
+# matplotlib
+# keras
+# scikit-learn
+# pytorch
+# scrapy
+# BeautifulSoup
