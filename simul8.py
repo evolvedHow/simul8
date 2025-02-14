@@ -1,3 +1,8 @@
+"""
+Simul8 is a helper class to execute discrete event simulations easily using the simpy framework
+author: vish ganapathy
+version 25.01
+"""
 from pickle import NONE
 
 from typing_extensions import dataclass_transform
@@ -20,7 +25,14 @@ class Simul8():
   library for discrete event simulation.
   """
 
+  # define defaults to be used
   DEFAULT_LOG = 'logs\default.csv'
+  DEFAULT_RUN_NAME = '*** Default Run ***'
+  DEFAULT_TRACE = True
+  
+  METRICS_LIST = ['task_count','task_duration','break_count','break_duration','current_sprint']
+  LOG_COLUMNS = ['ID','RUN_NO','MESSAGE','TASK/RESOURCE','START','DURATION','VARIANCE','RESOURCE']
+  
   
   def __init__(self, **kwargs):
     """
@@ -29,15 +41,15 @@ class Simul8():
     Args:
       profile (dict): A dictionary containing the simulation profile settings.
     """
-    self.config = {}
-    self.utilization = {}
-    self.tasks = {}
-    self.taskbox = {}
-    self.resources = {}
-    self.metrics = {}
-    self.taskState = {}
+    self.config = {}      # stores the entire yaml config
+    self.utilization = {} # tracks resource utilization
+    self.tasks = {}       # tasks to be executed
+    self.taskbox = {}     # provides an "inbox" type requests for each task
+    self.resources = {}   # resources needed to perform task
+    self.metrics = {}     # task and resource usage metrics
+    self.taskState = {}   # current task state by iteration
 
-    self.run_name: str = kwargs.get('run_name', '**Default**')
+    self.run_name: str = kwargs.get('run_name', DEFAULT_RUN_NAME)
     self.iterations = kwargs['profile'].get('iterations',1)
 
 
@@ -51,7 +63,7 @@ class Simul8():
     self.config['triggers'] = kwargs['triggers']
     self.config['resource_clones'] = kwargs.get('resource_clones',{})
     self.config['output'] = kwargs.get('output',None)
-    self.config['trace'] = kwargs.get*('trace',None)
+    self.config['trace'] = kwargs.get('trace',DEFAULT_TRACE)
 
     # Now expand the resources to also include clones
     if (self.config['resource_clones']):
@@ -67,17 +79,13 @@ class Simul8():
     self.utilization: dict = {}
     self.log: list = []
     self.trace: list = []
-    self.log.append('ID,RUN_NO,MESSAGE,TASK/RESOURCE,START,DURATION,VARIANCE,RESOURCE')
+    self.log.append(LOG_COLUMNS)
     self.log_id: int = 0
 
     self.env = None
 
   # define the resource template used to track resources
-    self.resMetrics: list = ['task_count',
-                             'task_duration',
-                             'break_count',
-                             'break_duration',
-                             'current_sprint']
+    self.resMetrics: list = METRICS_LIST
 
  #____________________________________________________________________
   def run(self, **kwargs) -> pd.DataFrame:
